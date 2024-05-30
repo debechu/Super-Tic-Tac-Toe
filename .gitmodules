@@ -1,0 +1,9 @@
+[submodule "deps/glfw"]
+	path = deps/glfw
+	url = https://github.com/glfw/glfw
+[submodule "deps/portaudio"]
+	path = deps/portaudio
+	url = https://github.com/PortAudio/portaudio
+[submodule "deps/libsndfile"]
+	path = deps/libsndfile
+	url = https://github.com/libsndfile/libsndfile

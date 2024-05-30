@@ -1,0 +1,3 @@
+-I./include
+-I./deps/glad/include
+-I./deps/glfw/include
