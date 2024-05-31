@@ -14,7 +14,8 @@ OBJECT_FILES := $(SOURCE_FILES:$(SOURCE_DIR)/%.c=$(BUILD_DIR)/%.o)
 LIBRARIES  = libglad.a libglfw3.a libsndfile.a libportaudio.a
 LIB_FILES := $(addprefix ./deps/bin/,$(LIBRARIES))
 LIB_FLAGS := $(addprefix -l:,$(LIBRARIES))
-LIB_FLAGS += -lm
+LIB_FLAGS += -lmp3lame -lmpg123 -lFLAC -lopus -lvorbisenc -lvorbis -logg
+LIB_FLAGS += -ljack -lasound -lpthread -lm
 
 .DELETE_ON_ERROR:
 $(TARGET_DIR)/$(TARGET_EXEC): $(LIB_FILES) $(OBJECT_FILES)
