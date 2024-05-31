@@ -1,3 +1,5 @@
 -I./include
 -I./deps/glad/include
 -I./deps/glfw/include
+-I./deps/libsndfile/include
+-I./deps/portaudio/include
