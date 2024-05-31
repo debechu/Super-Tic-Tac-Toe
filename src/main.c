@@ -70,6 +70,7 @@ main(int argc, const char** argv)
         return 1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
