@@ -2,7 +2,7 @@ BUILD_DIR  = ./build
 TARGET_DIR = ./bin
 
 LIBRARIES  = libglad.a libglfw3.a
-LIBRARIES := $(addprefix $(TARGET_DIR),$(LIBRARIES))
+LIBRARIES := $(addprefix $(TARGET_DIR)/,$(LIBRARIES))
 
 .DELETE_ON_ERROR:
 all: $(LIBRARIES)
