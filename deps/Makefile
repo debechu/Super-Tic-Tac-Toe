@@ -39,7 +39,8 @@ GLFW_BUILD_OPTIONS = \
 	-D GLFW_BUILD_TESTS=OFF \
 	-D GLFW_BUILD_DOCS=OFF \
 	-D GLFW_INSTALL=OFF \
-	-D GLFW_BUILD_WAYLAND=OFF
+	-D GLFW_BUILD_WAYLAND=OFF \
+	-D GLFW_BUILD_X11=ON
 $(BUILD_DIR)/glfw: ./glfw
 	cmake -S $< -B $@ $(GLFW_BUILD_OPTIONS) \
 		-D CMAKE_ARCHIVE_OUTPUT_DIRECTORY='$(abspath $(TARGET_DIR))' \
@@ -50,6 +51,7 @@ $(TARGET_DIR)/libglfw3.a: $(BUILD_DIR)/glfw
 $(TARGET_DIR)/libglad.a: ./glad
 	@mkdir -p $(BUILD_DIR)/glad
 	gcc -I$</include -c -o $(BUILD_DIR)/glad/glad.o $</src/glad.c
+	@mkdir -p $(dir $@)
 	ar rcs $@ $(BUILD_DIR)/glad/glad.o
 	
 .PHONY: clean
