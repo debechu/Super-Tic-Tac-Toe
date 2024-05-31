@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,11 +8,15 @@
 #include <sndfile.h>
 #include <portaudio.h>
 
-typedef struct Audio Audio;
-struct Audio
+#define FRAMES 1024
+
+typedef struct PaData PaData;
+struct PaData
 {
-    SF_INFO info;
-    float *data;
+    float *frames;
+    sf_count_t frame_count;
+    int channels;
+    _Bool filled;
 };
 
 static int
@@ -74,45 +79,29 @@ main(int argc, const char** argv)
 
     glClearColor(0.5f, 0.f, 1.f, 1.f);
 
-    Audio audio = {0};
-    SNDFILE *file = sf_open(argv[1], SFM_READ, &audio.info);
+    SF_INFO info = {0};
+    SNDFILE *file = sf_open(argv[1], SFM_READ, &info);
     if (!file)
     {
         printf("Failed to open audio file %s!\n", argv[1]);
         puts(sf_strerror(NULL));
     }
 
-    // TODO(debe): use a smaller buffer and put in loop.
-    audio.data = calloc(
-        audio.info.frames * audio.info.channels,
-        sizeof(float)
-    );
-    if (!audio.data)
-    {
-        printf("Ran out of memory!\n");
-        sf_close(file);
-        {
-            PaError err = Pa_Terminate();
-            if (err != paNoError)
-            {
-                printf("Failed to terminate PortAudio: %s\n",
-                       Pa_GetErrorText(err));
-            }
-        }
-        glfwTerminate();
-        return 1;
-    }
-    audio.info.frames = (int)sf_readf_float(file, audio.data, audio.info.frames);
+    PaData data;
+    data.channels = info.channels;
+    data.frames = calloc(FRAMES * info.channels, sizeof(float));
+    data.frame_count = sf_readf_float(file, data.frames, FRAMES);
+    data.filled = true;
 
     PaStream *stream = NULL;
     {
         PaError err = Pa_OpenDefaultStream(
-            &stream, 0, audio.info.channels,
+            &stream, 0, info.channels,
             paFloat32,
-            audio.info.samplerate,
-            audio.info.frames,
+            info.samplerate,
+            FRAMES,
             pa_stream_callback,
-            &audio
+            &data
         );
         if (err != paNoError)
         {
@@ -129,9 +118,15 @@ main(int argc, const char** argv)
             printf("Failed to start stream: %s\n", Pa_GetErrorText(err));
         }
     }
-
+    
     while (!glfwWindowShouldClose(window))
     {
+        if (data.frame_count != 0 && !data.filled)
+        {
+            data.frame_count = sf_readf_float(file, data.frames, FRAMES);
+            data.filled = true;
+        }
+
         glClear(GL_COLOR_BUFFER_BIT);
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -139,15 +134,24 @@ main(int argc, const char** argv)
 
     if (stream)
     {
-        PaError err = Pa_AbortStream(stream);
+        if (Pa_IsStreamActive(stream) > 0)
+        {
+            PaError err = Pa_AbortStream(stream);
+            if (err != paNoError)
+            {
+                printf("Failed to abort stream: %s\n", Pa_GetErrorText(err));
+            }
+        }
+
+        PaError err = Pa_CloseStream(stream);
         if (err != paNoError)
         {
-            printf("Failed to abort stream: %s\n", Pa_GetErrorText(err));
+            printf("Failed to close stream: %s\n", Pa_GetErrorText(err));
         }
     }
 
-    free(audio.data);
-    audio.data = NULL;
+    free(data.frames);
+    data.frames = NULL;
     
     sf_close(file);
     file = NULL;
@@ -177,15 +181,24 @@ pa_stream_callback(
     PaStreamCallbackFlags statusFlags,
     void *userData)
 {
-    Audio *audio = (Audio*)userData;
+    PaData *data = (PaData*)userData;
     float *out = (float*)output;
 
-    for (int i = 0; i < audio->info.frames; ++i)
+    sf_count_t frame_count = data->frame_count;
+    int channels = data->channels;
+    if (data->filled)
     {
-        for (int j = 0; j < audio->info.channels; ++j)
+        for (int i = 0; i < frame_count; ++i)
         {
-            size_t index = i * audio->info.channels + j;
-            out[index] = audio->data[index];
+            for (int j = 0; j < channels; ++j)
+            {
+                size_t index = i * channels + j;
+                out[index] = data->frames[index];
+            }
         }
+        data->filled = false;
     }
+
+    if (frame_count < FRAMES) return paComplete;
+    return paContinue;
 }
